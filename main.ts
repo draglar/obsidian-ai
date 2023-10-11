@@ -54,7 +54,7 @@ function startApp(basepath:string,ports:string): void {
 //   settings: MyPluginSettings;
 
   
-  appProcess = spawn(`${basepath}/.obsidian/plugins/obsidian/pythons/venv/bin/python`,[`${basepath}/.obsidian/plugins/obsidian/pythons/app.py`,ports]);
+  appProcess = spawn(`${basepath}/.obsidian/plugins/obsidian-text-image-generator/pythons/venv/bin/python`,[`${basepath}/.obsidian/plugins/obsidian-text-image-generator/pythons/app.py`,ports]);
 //   appProcess = spawn('./pythons/app', [ports]);
   console.log('survivd')
   // Optional: Listen for the app's output
@@ -184,7 +184,15 @@ export default class MyPlugin extends Plugin {
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		// const statusBarItemEl = this.addStatusBarItem();
 		const statusBar = this.addStatusBarItem();
+
 		statusBar.setText('Loaded')
+		//statusBar.addClass('status-bar-item-icon')
+		//let spanC = statusBar.setChildrenInPlace(span)
+		//statusBar.setText('ijk')
+		//spanC.setText('ijk')
+
+		// statusBar.setText('<span class="status-bar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-edit-3"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>')
+		// statusBar.setText('/home/eyan/aur/Atlas/XtraStuff/.obsidian/plugins/obsidian/svgs/bacteria.svg')
 		// statusBarItemEl.setText('Status Bar Text');
 
 		// This adds a simple command that can be triggered anywhere
@@ -196,15 +204,6 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 		
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
 		this.addCommand({
 			id: 'open-sample-modal-complex',
@@ -224,13 +223,18 @@ export default class MyPlugin extends Plugin {
 				}
 			}
 		});
+
 		this.addCommand({
 			id: 'Generate text',
 			name: 'Generate text',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const text = editor.getLine(editor.getCursor().line);
+				// const text = editor.getLine(editor.getCursor().line);
+				const selection = editor.getSelection();
+				const text = selection ? selection : editor.getLine(editor.getCursor().line);
+				
 				// console.log(text)
 				const prompt = '** VERY IMPORTANT DO NOT FORGET THIS FOR THE OUTPUT ** {"format": "markdown"}\n\n'+text
+				new Notice('Generating text ...');
 				statusBar.setText("Generating...");
 				const response = await this.callTextAPI(prompt, this.settings.text_model);
 				let tags = "";
@@ -241,10 +245,17 @@ export default class MyPlugin extends Plugin {
 					const tagsPrompt = `Summarize this text into a space separated list of tags.Using the following format for the tags: #tag1 #tag2 etc.\n\nText:\n${response}\n\nTags:\n`;
 					tags = await this.callTextAPI(tagsPrompt, this.settings.text_model);
 				}
-				editor.replaceSelection(
-					`\n${response}\t${tags}\n`,
+				//editor.replaceSelection(
+				//	`\n${response}\t${tags}\n`,
 					// editor.getCursor()
-				);
+				//);
+				editor.replaceSelection(
+                                        `${
+                                                this.settings.keepOriginal
+                                                        ? `${editor.getSelection()}`
+                                                        : ""
+                                        }\n${response}\t${tags}\n`
+                                );
 				statusBar.setText("Loaded");
 			},
 		});
@@ -253,7 +264,9 @@ export default class MyPlugin extends Plugin {
 			id: "Summarize Text",
 			name: "Summarize Text",
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const text = editor.getSelection();
+				// const text = editor.getSelection();
+				const selection = editor.getSelection();
+				const text = selection ? selection : editor.getLine(editor.getCursor().line);
 				// const loading = this.addStatusBarItem();
 				statusBar.setText("Summarizing...");
 
@@ -289,7 +302,9 @@ export default class MyPlugin extends Plugin {
 			id: "outline-to-complete-sentences",
 			name: "Outline to Complete Sentences",
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				const text = editor.getSelection();
+				// const text = editor.getSelection();
+				const selection = editor.getSelection();
+				const text = selection ? selection : editor.getLine(editor.getCursor().line);
 				const sentencesPrompt = `Convert this bulleted outline into complete sentence English (maintain the voice and styling (use bold, links, headers and italics Markdown where appropriate)). Each top level bullet is a new paragraph/section. Sub bullets go within the same paragraph. Convert shorthand words into full words.\n\nOutline:\n${text}\n\nComplete Sentences Format:\n`;
 				// const loading = this.addStatusBarItem();
 				statusBar.setText("Loading...");
@@ -313,8 +328,10 @@ export default class MyPlugin extends Plugin {
 			name: "Generate image",
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				// const text = editor.getSelection();
-				const text = editor.getLine(editor.getCursor().line);
-				statusBar.setText("Loading...");
+				// const text = editor.getLine(editor.getCursor().line);
+				const selection = editor.getSelection();
+				const text = selection ? selection : editor.getLine(editor.getCursor().line);
+				statusBar.setText("Image gen...");
 				const sentences = await this.callImageAPI(
 					text,
 					this.settings.image_generator,
@@ -340,8 +357,10 @@ export default class MyPlugin extends Plugin {
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				let context = 'I want you to act as a Stable Diffusion Art Prompt Generator. The formula for a prompt is made of parts, the parts are indicated by brackets. The [Subject] is the person place or thing the image is focused on. [Emotions] is the emotional look the subject or scene might have. [Verb] is What the subject is doing, such as standing, jumping, working and other varied that match the subject. [Adjectives] like beautiful, rendered, realistic, tiny, colorful and other varied that match the subject. The [Environment] in which the subject is in, [Lighting] of the scene like moody, ambient, sunny, foggy and others that match the Environment and compliment the subject. [Photography type] like Polaroid, long exposure, monochrome, GoPro, fisheye, bokeh and others. And [Quality] like High definition, 4K, 8K, 64K UHD, SDR and other. The subject and environment should match and have the most emphasis.\nIt is ok to omit one of the other formula parts. I will give you a [Subject], you will respond with a full prompt. Present the result as one full sentence, no line breaks, no delimiters, and keep it as concise as possible while still conveying a full scene.\nTo ensure the exclusion of undesirable characteristics in the generated art, it is recommended to use an appropriate negative prompt, such as:\ncodeugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face\nHere are samples of how it should be output\n"Beautiful woman, contemplative and reflective, sitting on a bench, cozy sweater, autumn park with colorful leaves, soft overcast light, muted color photography style, 4K quality." \n"Full-body portrayal of a jubilant Ana de Armas, detailed anime realism, trending on Pixiv, minute detailing, sharp and clean lines, award-winning illustration, 4K resolution, inspired by Eugene de Blaas and Ross Tran`s artistry, vibrant color usage, intricately detailed."\n"Full-body depiction of Ana de Armas, Alberto Seveso and Geo2099 style, an intricately detailed and hyper-realistic image in Lisa Frank style, trending on Artstation, butterflies and florals, sharp focus akin to a studio photograph, intricate details, praised by artists Tvera, Wlop, and Artgerm."'
 				// const text = editor.getSelection();
-				const text = editor.getLine(editor.getCursor().line);
-				statusBar.setText("Loading...");
+				// const text = editor.getLine(editor.getCursor().line);
+				const selection = editor.getSelection();
+				const text = selection ? selection : editor.getLine(editor.getCursor().line);
+				statusBar.setText("prompt gen...");
 				const prompt_new = await this.callTextAPI(
 					context+text,
 					this.settings.text_model,
@@ -384,7 +403,7 @@ export default class MyPlugin extends Plugin {
 			// console.log('click', evt);
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
+		// When registering intervals, this function wil automatically clear the interval when the plugin is disabled.
 		// this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 

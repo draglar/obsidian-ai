@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, send_from_directory, render_template
-# from flask_cors import CORS
 import json
 import nltk
 import re
@@ -102,7 +101,7 @@ async def photoapi(generator,prompt,model,negative_prompt,path,basepath):
             resp = await AsyncClient.create_generation(generator, prompt)
         # resp = await getattr(freeGPT, "prodia").Generation().create(prompt)
         # print('generated')
-        name ,filename = check_and_generate_hash(prompt)
+        name ,filename = check_and_generate_hash(prompt,dir_=f'{basepath}/{path}/')
         # print('hashed')
         pic = Image.open(BytesIO(resp))
         # print('picled')

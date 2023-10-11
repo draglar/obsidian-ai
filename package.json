@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "Text-image-generator",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "This is a simple plugin for Obsidian (https://obsidian.md) that creates a local server to use freegpt to generate text and images",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

@@ -15,10 +15,11 @@ pip install flask
 
 echo "Building the exe file..."
 pyinstaller --onefile app.py
+# pyinstaller app.py
 
 if [ -f dist/app ]; then
     echo "Executable file created successfully."
-    cp dist/app app
+    # cp dist/app app
 else
     echo "Failed to create the exe file."
 fi
