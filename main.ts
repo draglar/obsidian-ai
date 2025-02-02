@@ -4,8 +4,7 @@ import { exec,spawn,ChildProcess  } from 'child_process';
 
 
 import { stat } from 'fs';
-// import { spawn } from 'child_process';
-
+import { error } from 'console';
 // Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
@@ -25,36 +24,25 @@ interface MyPluginSettings {
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	api_url : 'http://127.0.0.1',
-	port: '5000',
-	text_api:'api/text',
-	text_model : 'gpt3',
+	port: '11434',
+	text_api:'api/generate',
+	text_model : 'Aesir',
 	image_api:'api/image',
 	image_generator : 'prodia',
 	image_model: 'dreamshaper_8',
 	image_path: 'gpt',
 	negative_prompt: '(nsfw:1.5),verybadimagenegative_v1.3, ng_deepnegative_v1_75t, (ugly face:0.5),cross-eyed,sketches, (worst quality:2), (low quality:2.1), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, bad anatomy, DeepNegative, facing away, tilted head, {Multiple people}, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worstquality, low quality, normal quality, jpegartifacts, signature, watermark, username, blurry, bad feet, cropped, poorly drawn hands, poorly drawn face, mutation, deformed, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, extra fingers, fewer digits, extra limbs, extra arms,extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed,mutated hands, polar lowres, bad body, bad proportions, gross proportions, text, error, missing fingers, missing arms, missing legs, extra digit, extra arms, extra leg, extra foot, repeating hair',
 	context: true,
-	generate_tags: true,
+	generate_tags: false,
 	keepOriginal: true,
 }
 
-// const default_setings = {
-// 	api : 'http://127.0.0.1',
-// 	port: '5000',
-// 	chat_model: 'gpt3',
-// 	photo_model: 'prodia',
-// }
-// const chat_models = ['gpt3','gpt4',]
-// const photo_models = ['prodia']
 let appProcess: ChildProcess | null = null;
 
-
+/*
 function startApp(basepath:string,ports:string): void {
-  // Replace './app' with the actual path to your app
-//   settings: MyPluginSettings;
-
-  
-  appProcess = spawn(`${basepath}/.obsidian/plugins/obsidian-text-image-generator/pythons/venv/bin/python`,[`${basepath}/.obsidian/plugins/obsidian-text-image-generator/pythons/app.py`,ports]);
+  // run ollama serve using bash/zsh
+  appProcess = spawn()
 //   appProcess = spawn('./pythons/app', [ports]);
   console.log('survivd')
   // Optional: Listen for the app's output
@@ -84,53 +72,36 @@ function stopApp(): void {
 	  console.log('App is not running');
 	}
   }
-
+*/
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
-	// async runPythonScript() {
-	// 	exec('~/docs/course-maker/venv/bin/python3 ~/docs/course-maker/app.py', (error, stdout, stderr) => {
-	// 	  if (error) {
-	// 		console.error(`Error: ${error.message}`);
-	// 		return;
-	// 	  }
-	// 	  if (stderr) {
-	// 		console.error(`Stderr: ${stderr}`);
-	// 		return;
-	// 	  }
-	// 	  console.log(`Output: ${stdout}`);
-	// 	});
-	//   }
-	
 	async callTextAPI(
 		prompt: string,
 		model : string
 	) {
-		// await this.loadSettings();
 		console.log('here');
 		console.log(`${this.settings.api_url}:${this.settings.port}/${this.settings.text_api}`)
 		const response = await request({
 			url: `${this.settings.api_url}:${this.settings.port}/${this.settings.text_api}`,
 			method: "POST",
-			// headers: {
-			// 	Authorization: `Bearer ${this.settings.apiKey}`,
-				// "Content-Type": "application/json",
-			// },
 			contentType: "application/json",
 			body: JSON.stringify({
 				prompt: prompt,
 				model :model,
-
-			// 	max_tokens: max_tokens,
-			// 	temperature: temperature,
-			// 	best_of: best_of,
+				"stream": false,
+				// "format":'markdown',
 			}),
 		});
-		console.log('sent')
+		// const rawResponse = '{"model":"deepseek-r1:1.5b","created_at":"2025-02-01T07:31:07.525139512Z","response":"\u003cthink\u003e\n\n\u003c/think\u003e\n\nBoston is located in the eastern United States, and depending on the season, it can experience varied weather conditions. During colder months, Boston may face snow or ice, while in warmer periods, it can be warm and sunny. To get accurate real-time weather information, please check a reliable weather website or app.","done":true,"done_reason":"stop","context":[151644,3838,374,279,9104,1075,304,10196,30,151645,151648,271,151649,271,64332,374,7407,304,279,23149,3639,4180,11,323,11649,389,279,3200,11,432,646,3139,27730,9104,4682,13,11954,75114,3951,11,10196,1231,3579,11794,476,9853,11,1393,304,44939,18346,11,432,646,387,8205,323,39698,13,2014,633,13382,1931,7246,9104,1995,11,4486,1779,264,14720,9104,3910,476,906,13],"total_duration":6145007554,"load_duration":48513675,"prompt_eval_count":11,"prompt_eval_duration":100000000,"eval_count":67,"eval_duration":5994000000}';
 
-		const responseJSON = JSON.parse(response);
-		// console.log(responseJSON);
+
+		console.log('sent')
+		
+		  const responseJSON = JSON.parse(response);
+		//   const responseJSON = JSON.parse(cleanApiResponse(rawResponse));
+		  
+		// console.log(responseJSON)
 		return responseJSON['response'];
-		// return responseJSON.choices[0].text;
 	}
 	async callImageAPI(
 		prompt: string,
@@ -161,17 +132,8 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		let basepath = this.app.vault.adapter.basePath
-		// this.runPythonScript();
-		// const pythonProcess = spawn('python', ['pythons/app.py']);
-		// const pythonProcess = spawn('bash', ['pythons/build/app.py']);
-		// console.log(`./pythons/app ${this.settings.port}`);
-		// const appProcess = spawn(`./pythons/app`, [this.settings.port]);
-		startApp(basepath,this.settings.port);
-		
-		// const appProcess = spawn('bash', [`pythons/app.py ${this.settings.port}`]);
-		// This creates an icon in the left ribbon.
+		// startApp(basepath,this.settings.port);
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
 			new Notice('This is a notice, i just changed it. again');
 		});
 		
@@ -186,15 +148,6 @@ export default class MyPlugin extends Plugin {
 		const statusBar = this.addStatusBarItem();
 
 		statusBar.setText('Loaded')
-		//statusBar.addClass('status-bar-item-icon')
-		//let spanC = statusBar.setChildrenInPlace(span)
-		//statusBar.setText('ijk')
-		//spanC.setText('ijk')
-
-		// statusBar.setText('<span class="status-bar-item-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-edit-3"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>')
-		// statusBar.setText('/home/eyan/aur/Atlas/XtraStuff/.obsidian/plugins/obsidian/svgs/bacteria.svg')
-		// statusBarItemEl.setText('Status Bar Text');
-
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
 			id: 'open-sample-modal-simple',
@@ -228,12 +181,10 @@ export default class MyPlugin extends Plugin {
 			id: 'Generate text',
 			name: 'Generate text',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				// const text = editor.getLine(editor.getCursor().line);
 				const selection = editor.getSelection();
 				const text = selection ? selection : editor.getLine(editor.getCursor().line);
-				
-				// console.log(text)
-				const prompt = '** VERY IMPORTANT DO NOT FORGET THIS FOR THE OUTPUT ** {"format": "markdown"}\n\n'+text
+				const prompt = text
+				// const prompt = '** VERY IMPORTANT DO NOT FORGET THIS FOR THE OUTPUT ** {"format": "markdown"}\n\n'+text
 				new Notice('Generating text ...');
 				statusBar.setText("Generating...");
 				const response = await this.callTextAPI(prompt, this.settings.text_model);
@@ -245,10 +196,6 @@ export default class MyPlugin extends Plugin {
 					const tagsPrompt = `Summarize this text into a space separated list of tags.Using the following format for the tags: #tag1 #tag2 etc.\n\nText:\n${response}\n\nTags:\n`;
 					tags = await this.callTextAPI(tagsPrompt, this.settings.text_model);
 				}
-				//editor.replaceSelection(
-				//	`\n${response}\t${tags}\n`,
-					// editor.getCursor()
-				//);
 				editor.replaceSelection(
                                         `${
                                                 this.settings.keepOriginal
@@ -327,8 +274,6 @@ export default class MyPlugin extends Plugin {
 			id: "Generate image",
 			name: "Generate image",
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
-				// const text = editor.getSelection();
-				// const text = editor.getLine(editor.getCursor().line);
 				const selection = editor.getSelection();
 				const text = selection ? selection : editor.getLine(editor.getCursor().line);
 				statusBar.setText("Image gen...");
@@ -356,8 +301,6 @@ export default class MyPlugin extends Plugin {
 			name: "Generate prompt and image",
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				let context = 'I want you to act as a Stable Diffusion Art Prompt Generator. The formula for a prompt is made of parts, the parts are indicated by brackets. The [Subject] is the person place or thing the image is focused on. [Emotions] is the emotional look the subject or scene might have. [Verb] is What the subject is doing, such as standing, jumping, working and other varied that match the subject. [Adjectives] like beautiful, rendered, realistic, tiny, colorful and other varied that match the subject. The [Environment] in which the subject is in, [Lighting] of the scene like moody, ambient, sunny, foggy and others that match the Environment and compliment the subject. [Photography type] like Polaroid, long exposure, monochrome, GoPro, fisheye, bokeh and others. And [Quality] like High definition, 4K, 8K, 64K UHD, SDR and other. The subject and environment should match and have the most emphasis.\nIt is ok to omit one of the other formula parts. I will give you a [Subject], you will respond with a full prompt. Present the result as one full sentence, no line breaks, no delimiters, and keep it as concise as possible while still conveying a full scene.\nTo ensure the exclusion of undesirable characteristics in the generated art, it is recommended to use an appropriate negative prompt, such as:\ncodeugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face\nHere are samples of how it should be output\n"Beautiful woman, contemplative and reflective, sitting on a bench, cozy sweater, autumn park with colorful leaves, soft overcast light, muted color photography style, 4K quality." \n"Full-body portrayal of a jubilant Ana de Armas, detailed anime realism, trending on Pixiv, minute detailing, sharp and clean lines, award-winning illustration, 4K resolution, inspired by Eugene de Blaas and Ross Tran`s artistry, vibrant color usage, intricately detailed."\n"Full-body depiction of Ana de Armas, Alberto Seveso and Geo2099 style, an intricately detailed and hyper-realistic image in Lisa Frank style, trending on Artstation, butterflies and florals, sharp focus akin to a studio photograph, intricate details, praised by artists Tvera, Wlop, and Artgerm."'
-				// const text = editor.getSelection();
-				// const text = editor.getLine(editor.getCursor().line);
 				const selection = editor.getSelection();
 				const text = selection ? selection : editor.getLine(editor.getCursor().line);
 				statusBar.setText("prompt gen...");
@@ -408,7 +351,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	onunload() {
-		stopApp();
+		// stopApp();
 		// appProcess.kill();
 	}
 
@@ -500,10 +443,9 @@ class SampleSettingTab extends PluginSettingTab {
 			.setDesc("Choose the text model to use for generation")
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("gpt3", "gpt3")
-					.addOption("gpt4", "gpt4")
-					.addOption("alpaca", "alpaca_7b")
-					.addOption("falcon", "falcon_40b")
+					.addOption("Aesir", "Aesir")
+					.addOption("deepseek-coder", "deepseek-coder")
+					.addOption("deepseek-r1:1.5b", "deepseek-r1:1.5b")
 					
 					.setValue(this.plugin.settings.text_model)
 					.onChange(async (value) => {
